@@ -197,6 +197,101 @@ def distanceCallback(data):
 	    changeHeading(1)
 
 
+def turnLeft(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.BACKWARD)
+    myMotor2.run(Adafruit_MotorHAT.FORWARD)
+    
+def turnRight(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.FORWARD)
+    myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+
+def moveFwd(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.FORWARD)
+    myMotor2.run(Adafruit_MotorHAT.FORWARD)
+
+def moveBkwd(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.BACKWARD)
+    myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+
+
+def smoothDance():
+    rospy.sleep(1.3)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+  
+    turnLeft(180)
+    rospy.sleep(0.3) 
+    turnRight(180)
+    rospy.sleep(0.3) 
+    turnLeft(210)
+    rospy.sleep(1)     
+    turnLeft(150)
+    rospy.sleep(0.3) 
+    moveFwd(150)
+    rospy.sleep(0.3) 
+    turnRight(180)
+    rospy.sleep(1)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+
+    turnLeft(180)
+    rospy.sleep(0.3) 
+    turnRight(180)
+    rospy.sleep(0.3) 
+    turnLeft(180)
+    rospy.sleep(1)     
+    turnLeft(150)
+    rospy.sleep(0.3) 
+    turnRight(150)
+    rospy.sleep(0.3) 
+    turnRight(180)
+    rospy.sleep(1.5)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(1)
+    moveFwd(150)     
+    rospy.sleep(0.3)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+
+    turnLeft(180)
+    rospy.sleep(0.3) 
+    moveBkwd(180)
+    rospy.sleep(0.3) 
+    turnRight(210)
+    rospy.sleep(1)     
+    turnLeft(150)
+    rospy.sleep(0.3) 
+    turnRight(150)
+    rospy.sleep(0.3) 
+    turnLeft(200)
+    rospy.sleep(1)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+
 	    
 def vocalCommandCallback(data):
     global currentSpeed
@@ -208,6 +303,9 @@ def vocalCommandCallback(data):
     if(command == "stop"):
         currentSpeed = 0
         setSpeed(currentSpeed)
+    if(command == "smooth"):
+        smoothDance()
+		
 
 def motorCtrl():
     global pubAudio
