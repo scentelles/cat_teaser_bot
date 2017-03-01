@@ -1,0 +1,6 @@
+<launch>
+  <node name="camera" pkg="cat_teaser_bot" type="camera.py" />
+  <node name="ultrasonic" pkg="cat_teaser_bot" type="ultrasonic.py" />
+  <node name="motorCtrl" pkg="cat_teaser_bot" type="motorCtrl.py" />
+  <node name="audioRenderer" pkg="cat_teaser_bot" type="audio.py" />
+</launch>
