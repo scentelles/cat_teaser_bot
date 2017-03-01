@@ -221,6 +221,11 @@ def moveBkwd(speed):
     myMotor1.run(Adafruit_MotorHAT.BACKWARD)
     myMotor2.run(Adafruit_MotorHAT.BACKWARD)
 
+def moveStop():
+    myMotor1.setSpeed(0)
+    myMotor2.setSpeed(0)
+
+
 
 def smoothDance():
     rospy.sleep(1.3)
@@ -291,7 +296,31 @@ def smoothDance():
     rospy.sleep(0.5)
     moveBkwd(150)
     rospy.sleep(0.5)
+    
+    
+    turnLeft(180)
+    rospy.sleep(0.3) 
+    moveBkwd(180)
+    rospy.sleep(0.3) 
+    turnRight(210)
+    rospy.sleep(1)     
+    turnLeft(150)
+    rospy.sleep(0.3) 
+    turnRight(150)
+    rospy.sleep(0.3) 
+    turnLeft(200)
+    rospy.sleep(1)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
 
+    
+    moveStop()
 	    
 def vocalCommandCallback(data):
     global currentSpeed

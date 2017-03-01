@@ -57,7 +57,7 @@ def speechRecog():
                 os.system("mplayer ~/smooth.wav")
 
             if(sentence.find("va") > -1):
-                command = buildCommand("Bof... jai beau etre un robot, avec tout ce qu'il se passe en ce moment, je me sens un peu triste")
+                command = buildCommand("Bof... G beau etre un robot, avec tout ce qu'il se passe en ce moment, je me sens un peu triste")
 	        os.system(command)
 
             if(sentence.find("dure") > -1):
