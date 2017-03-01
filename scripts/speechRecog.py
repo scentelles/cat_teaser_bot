@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 import rospy
+import os
 from std_msgs.msg import Int32
+from std_msgs.msg import String
 import speech_recognition as sr
-
+import time
 
 
  
 def speechRecog():
 
     rospy.loginfo("Starting Speech Recognition Node")
-    pub = rospy.Publisher('/command/move', Int32, queue_size=10)
+    pub = rospy.Publisher('/speech/command', String, queue_size=10)
     rospy.init_node('speechRecog', anonymous=True)
    
     # Record Audio
@@ -29,11 +31,26 @@ def speechRecog():
             sentence = r.recognize_google(audio, language = "fr-fr")
             print("You said: " + sentence)
             #command = "espeak -vfr+f3 -k5 -s150 " + "\\\'" + sentence.encode('utf8') + "\\\'"
-            command = "./speak.sh " + "\\\'" + sentence.encode('utf8') + "\\\'" 
+            #TODO : remove hardcoded path
+	    command = "/home/pi/ros_my_ws/src/cat_teaser_bot/scripts/speak.sh " + "\\\'" + sentence.encode('utf8') + "\\\'" 
             os.system(command)
+
+            if(sentence.find("Start") > -1):
+	        command = "/home/pi/ros_my_ws/src/cat_teaser_bot/scripts/speak.sh " + "\\\'" + "OK, c'est parti!" + "\\\'" 
+	        os.system(command)
+		pub.publish("start")
+            if(sentence.find("Stop") > -1):
+		pub.publish("stop")
+	        command = "/home/pi/ros_my_ws/src/cat_teaser_bot/scripts/speak.sh " + "\\\'" + "OK, je reste la!" + "\\\'" 
+	        os.system(command)
        
             if(sentence.find("EPIC") > -1):
                 os.system("aplay ~/Epicsax.wav")
+	    if(sentence.find("revoir") > -1):
+	        command = "/home/pi/ros_my_ws/src/cat_teaser_bot/scripts/speak.sh " + "\\\'" + "bye bye" + "\\\'" 
+	        os.system(command)
+		time.sleep(1)
+		quit()
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand audio")
         except sr.RequestError as e:

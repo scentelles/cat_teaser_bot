@@ -197,6 +197,18 @@ def distanceCallback(data):
 	    changeHeading(1)
 
 
+	    
+def vocalCommandCallback(data):
+    global currentSpeed
+    command = data.data
+    rospy.loginfo(rospy.get_caller_id() + 'Received vocal command : ' + command)
+    if(command == "start"):
+        currentSpeed = 80
+        setSpeed(currentSpeed)
+    if(command == "stop"):
+        currentSpeed = 0
+        setSpeed(currentSpeed)
+
 def motorCtrl():
     global pubAudio
     # In ROS, nodes are uniquely named. If two nodes with the same
@@ -208,9 +220,8 @@ def motorCtrl():
     headingChangeInProgress = 0
     currentSpeed = 0
     rospy.init_node('motorCtrl', anonymous=False)
-    setSpeed(80)
-    currentSpeed = 80
 
+    rospy.Subscriber('/speech/command', String, vocalCommandCallback)
     rospy.Subscriber('/motor/command', Int32, callback)
     rospy.Subscriber('/camera/face', Int32, faceDetectedCallback)
     rospy.Subscriber('/sensor/distance', Int32, distanceCallback)
