@@ -21,7 +21,7 @@ GPIO.setup(ECHO,GPIO.IN)                   #Set pin as GPIO in
 def ultrasonic():
     pub = rospy.Publisher('/sensor/distance', Int32, queue_size=1)
     rospy.init_node('ultrasonic', anonymous=True)
-    rate = rospy.Rate(4)
+    rate = rospy.Rate(5)
     
     while not rospy.is_shutdown():
 
