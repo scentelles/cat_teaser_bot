@@ -1,0 +1,11 @@
+{ "extensionName": "Robot",
+ "extensionPort": 12345,
+ "blockSpecs": [
+[" ", "Start", "start"],
+[" ", "Stop", "stop"],
+[" ", "Left", "left"],
+[" ", "Right", "right"],
+[" ", "Set speed to %n", "setspeed", 5],
+["r", "Distance", "distance"],
+ ]
+}
