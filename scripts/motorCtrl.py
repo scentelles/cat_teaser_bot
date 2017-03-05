@@ -166,7 +166,7 @@ def callback(data):
     currentSpeed = data.data
     
 def startCallback(data):
-    moveFwd(80)
+    moveFwd(currentSpeed)
     rospy.loginfo(rospy.get_caller_id() + 'I received command start')
     
 def stopCallback(data):
@@ -175,11 +175,11 @@ def stopCallback(data):
 
 def leftCallback(data):
     rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
-    turnLeft(80)
+    turnLeft(currentSpeed)
     
 def rightCallback(data):
     rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
-    turnRight(80)
+    turnRight(currentSpeed)
 
 def faceDetectedCallback(data):
     global headingChangeInProgress
@@ -374,6 +374,15 @@ def vocalCommandCallback(data):
         setSpeed(currentSpeed)
     if(command == "smooth"):
         smoothDance()
+
+def setSpeedCallback(data):
+    global currentSpeed
+    value = data.data
+    rospy.loginfo(rospy.get_caller_id() + 'Received setspeed command : ' + str(value))
+    currentSpeed = value
+    setSpeed(value)
+
+
 		
 
 def motorCtrl():
@@ -397,6 +406,7 @@ def motorCtrl():
     rospy.Subscriber('/robot/start', Int32, startCallback)
     rospy.Subscriber('/robot/left', Int32, leftCallback)
     rospy.Subscriber('/robot/right', Int32, rightCallback)
+    rospy.Subscriber('/robot/setspeed', Int32, setSpeedCallback)
 
     pubAudio = rospy.Publisher('/audio/command', String, queue_size=1)
 
