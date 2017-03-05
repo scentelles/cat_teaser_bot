@@ -8,7 +8,8 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
 import cv2
- 
+import numpy as np
+
 def camera():
     rospy.loginfo("Starting Camera Node")
     pub = rospy.Publisher('/camera/face', Int32, queue_size=10)
