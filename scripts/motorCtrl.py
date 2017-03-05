@@ -131,6 +131,33 @@ def setSpeed(speed):
     myMotor2.setSpeed(speed + 9)
 
 
+def turnLeft(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.BACKWARD)
+    myMotor2.run(Adafruit_MotorHAT.FORWARD)
+    
+def turnRight(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.FORWARD)
+    myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+
+def moveFwd(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.FORWARD)
+    myMotor2.run(Adafruit_MotorHAT.FORWARD)
+
+def moveBkwd(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.BACKWARD)
+    myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+
+def moveStop():
+    myMotor1.setSpeed(0)
+    myMotor2.setSpeed(0)
 
 def callback(data):
     global myMotor1, myMotor2, currentSpeed
@@ -138,8 +165,21 @@ def callback(data):
     setSpeed(data.data)
     currentSpeed = data.data
     
+def startCallback(data):
+    moveFwd(80)
+    rospy.loginfo(rospy.get_caller_id() + 'I received command start')
     
+def stopCallback(data):
+    moveStop()
+    rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
 
+def leftCallback(data):
+    rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
+    turnLeft(80)
+    
+def rightCallback(data):
+    rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
+    turnRight(80)
 
 def faceDetectedCallback(data):
     global headingChangeInProgress
@@ -348,10 +388,15 @@ def motorCtrl():
     currentSpeed = 0
     rospy.init_node('motorCtrl', anonymous=False)
 
+
     rospy.Subscriber('/speech/command', String, vocalCommandCallback)
     rospy.Subscriber('/motor/command', Int32, callback)
     rospy.Subscriber('/camera/face', Int32, faceDetectedCallback)
     rospy.Subscriber('/sensor/distance', Int32, distanceCallback)
+    rospy.Subscriber('/robot/stop', Int32, stopCallback)
+    rospy.Subscriber('/robot/start', Int32, startCallback)
+    rospy.Subscriber('/robot/left', Int32, leftCallback)
+    rospy.Subscriber('/robot/right', Int32, rightCallback)
 
     pubAudio = rospy.Publisher('/audio/command', String, queue_size=1)
 
