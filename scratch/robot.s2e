@@ -1,0 +1,12 @@
+{ "extensionName": "Robot",
+ "extensionPort": 12345,
+ "blockSpecs": [
+[" ", "Start", "start"],
+[" ", "Stop", "stop"],
+[" ", "Left", "left"],
+[" ", "Right", "right"],
+[" ", "set beep volume to %n", "setVolume", 5],
+["r", "beep volume", "volume"],
+["r", "test", "test"],
+ ]
+}
