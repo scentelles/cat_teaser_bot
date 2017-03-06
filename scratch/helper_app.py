@@ -12,6 +12,8 @@ MQTT_ADDRESS = "192.168.4.2"
 
 value= 0
 client = 0
+
+global currentDistance
 class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_HEAD(s):
         s.send_response(200)
@@ -30,7 +32,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         if (s.path == "/poll"):
             value += 1
-            s.wfile.write("distance " + str(value) + "\n")
+            s.wfile.write("test " + str(value) + "\n")
+            s.wfile.write("distance " + str(currentDistance) + "\n")
         if (s.path == "/start"):
             client.publish("robot/start", payload='1', qos=0, retain=False)
 
@@ -45,14 +48,20 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         match = re.search(r'setspeed/(\d+)', s.path)
         if match:
+            
             client.publish("robot/setspeed", payload=int(match.group(1)), qos=0, retain=False)
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc) + "\n")
 
 def on_message(client, userdata, msg):
+    global currentDistance
     print(msg.topic+" "+str(msg.payload) + "\n")
-
+    
+    if msg.topic == "sensor/distance":
+        currentDistance = int(msg.payload)
+    
+  
 if __name__ == '__main__':
     print "toto\n"
     server_class = BaseHTTPServer.HTTPServer
@@ -60,14 +69,18 @@ if __name__ == '__main__':
     print time.asctime(), "Server Starts - %s:%s" % (HOST_NAME, PORT_NUMBER)
 	
     global client
+    global currentDistance
+    currentDistance = 0
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
-    print "coucou1\n"
+
     client.connect(MQTT_ADDRESS)
-    print "coucou1\n"
+
+    client.subscribe("sensor/distance")    
+
     client.loop_start()
-    print "coucou2\n"
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
