@@ -3,8 +3,12 @@ import BaseHTTPServer
 
 import paho.mqtt.client as mqtt
 
+
+import re
 HOST_NAME = 'localhost' # !!!REMEMBER TO CHANGE THIS!!!
 PORT_NUMBER = 12345 # Maybe set this to 9000.
+
+MQTT_ADDRESS = "192.168.4.2"
 
 value= 0
 client = 0
@@ -26,7 +30,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         if (s.path == "/poll"):
             value += 1
-            s.wfile.write("test " + str(value) + "\n")
+            s.wfile.write("distance " + str(value) + "\n")
         if (s.path == "/start"):
             client.publish("robot/start", payload='1', qos=0, retain=False)
 
@@ -38,7 +42,10 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if (s.path == "/right"):
             client.publish("robot/right", payload='1', qos=0, retain=False)		
-
+        
+        match = re.search(r'setspeed/(\d+)', s.path)
+        if match:
+            client.publish("robot/setspeed", payload=int(match.group(1)), qos=0, retain=False)
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc) + "\n")
@@ -57,7 +64,7 @@ if __name__ == '__main__':
     client.on_connect = on_connect
     client.on_message = on_message
     print "coucou1\n"
-    client.connect("192.168.1.28")
+    client.connect(MQTT_ADDRESS)
     print "coucou1\n"
     client.loop_start()
     print "coucou2\n"

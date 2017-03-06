@@ -5,8 +5,7 @@
 [" ", "Stop", "stop"],
 [" ", "Left", "left"],
 [" ", "Right", "right"],
-[" ", "set beep volume to %n", "setVolume", 5],
-["r", "beep volume", "volume"],
-["r", "test", "test"],
+[" ", "Set speed to %n", "setspeed", 5],
+["r", "Distance", "distance"],
  ]
 }
