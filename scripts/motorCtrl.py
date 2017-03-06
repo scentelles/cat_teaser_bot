@@ -1,229 +1,253 @@
 #!/usr/bin/env python
-import RPi.GPIO as GPIO
-from time import sleep
-import time, math
-from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor
-import atexit
+"""Motor control ROS node"""
 
-import threading
+import time
+import math
+import atexit
 
 import rospy
 from std_msgs.msg import Int32
-from std_msgs.msg import String
+
+from Adafruit_MotorHAT import Adafruit_MotorHAT
+
+import RPi.GPIO as GPIO
 
 
-
-
-cm_per_sec_1 = 0
-cm_per_sec_2 = 0
-rpm_1 = 0
-rpm_2 = 0
-elapse_1 = 0
-elapse_2 = 0
-sensor_1 = 15
-sensor_2 = 12
-pulse_1 = 0
-pulse_2 = 0
-start_timer_1 = time.time()
-start_timer_2 = time.time()
-accumul_1 = 0
-accumul_2 = 0 
 NB_WHEEL_TICK = 40
 NB_ACCUMUL = 10
 
-nb_tour = 0
-
-used_1 = 0
-used_2 = 0
 
 
+class MotorCtrl(object):
+    """MotorCtrl class implementing motor control"""
+    def __init__(self):
+        self.cm_per_sec_1 = 0
+        self.cm_per_sec_2 = 0
+        self.rpm_1 = 0
+        self.rpm_2 = 0
+        self.elapse_1 = 0
+        self.elapse_2 = 0
+        self.sensor_1 = 15
+        self.sensor_2 = 12
+        self.pulse_1 = 0
+        self.pulse_2 = 0
+        self.start_timer_1 = time.time()
+        self.start_timer_2 = time.time()
+        self.accumul_1 = 0
+        self.accumul_2 = 0
 
-class MotorCtrl():
-    def __init__ (self):
-        self.init_GPIO()
+
+        self.nb_tour = 0
+
+        self.used_1 = 0
+        self.used_2 = 0
+
+        self.init_gpio()
         self.init_interrupt()
-        self.mh = Adafruit_MotorHAT(addr=0x70) 
-        self.myMotor2 = self.mh.getMotor(2)
-        self.myMotor1 = self.mh.getMotor(1)    
-        self.currentSpeed = 0
-	
-    def rosNodeStart(self):
+        self.motor_handle = Adafruit_MotorHAT(addr=0x70)
+        self.motor_2 = self.motor_handle.getMotor(2)
+        self.motor_1 = self.motor_handle.getMotor(1)
+        self.current_speed = 0
+
+
+
+        atexit.register(self.turn_off_motors)
+
+
+
+    def ros_node_start(self):
+        """Init method, in charge of launching the ros node
+	Also subscribes to relevant topics"""
         rospy.init_node('motorCtrl', anonymous=False)
 
-        #Subscription to motor control topics	
-        rospy.Subscriber('/motor/set_speed', Int32, self.setSpeedCallback)
-        rospy.Subscriber('/motor/start', Int32, self.startCallback)
-        rospy.Subscriber('/motor/stop', Int32, self.stopCallback)
-        rospy.Subscriber('/motor/backward', Int32, self.backwardCallback)
-        rospy.Subscriber('/motor/turn_left', Int32, self.leftCallback)
-        rospy.Subscriber('/motor/turn_right', Int32, self.rightCallback)
+        #Subscription to motor control topics
+        rospy.Subscriber('/motor/set_speed', Int32, self.cb_set_speed)
+        rospy.Subscriber('/motor/start', Int32, self.cb_start)
+        rospy.Subscriber('/motor/stop', Int32, self.cb_stop)
+        rospy.Subscriber('/motor/backward', Int32, self.cb_bkwd)
+        rospy.Subscriber('/motor/turn_left', Int32, self.cb_left)
+        rospy.Subscriber('/motor/turn_right', Int32, self.cb_right)
 
 
         # spin() simply keeps python from exiting until this node is stopped
-        rospy.spin()   
-	
-	
+        rospy.spin()
+
+
     def init_interrupt(self):
-        GPIO.add_event_detect(sensor_1, GPIO.BOTH, callback = self.calculate_elapse_1, bouncetime = 5)
-        GPIO.add_event_detect(sensor_2, GPIO.BOTH, callback = self.calculate_elapse_2, bouncetime = 5)
+        """registers interrupt for GPIO events used in speed monitoring"""
+        GPIO.add_event_detect(self.sensor_1,
+                              GPIO.BOTH,
+                              callback=self.cb_calculate_elapse_1,
+                              bouncetime=5)
+        GPIO.add_event_detect(self.sensor_2,
+                              GPIO.BOTH,
+                              callback=self.cb_calculate_elapse_2,
+                              bouncetime=5)
 
     # recommended for auto-disabling motors on shutdown!
-    def turnOffMotors(self):
-        mh.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
-        mh.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
+    def turn_off_motors(self):
+        """Turns off motors at electrical level"""
+        self.motor_handle.getMotor(1).run(Adafruit_MotorHAT.RELEASE)
+        self.motor_handle.getMotor(2).run(Adafruit_MotorHAT.RELEASE)
 
-    def init_GPIO(self):               # initialize GPIO
+    def init_gpio(self):               # initialize GPIO
+        """Initialize board GPIO"""
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
-        GPIO.setup(sensor_1,GPIO.IN,GPIO.PUD_UP)
-        GPIO.setup(sensor_2,GPIO.IN,GPIO.PUD_UP)
+        GPIO.setup(self.sensor_1, GPIO.IN, GPIO.PUD_UP)
+        GPIO.setup(self.sensor_2, GPIO.IN, GPIO.PUD_UP)
 
 
 
-    def setSpeed(self, speed):
-        self.myMotor1.setSpeed(speed + 0)
-        self.myMotor2.setSpeed(speed + 9)
+    def set_speed(self, speed):
+        """Method to set motor speed,
+	with offset to compensate different spee dat same value"""
+        self.motor_1.setSpeed(speed + 0)
+        self.motor_2.setSpeed(speed + 9)
 
 
-    def turnLeft(self, speed):
-        self.myMotor1.setSpeed(speed)
-        self.myMotor2.setSpeed(speed)
-        self.myMotor1.run(Adafruit_MotorHAT.BACKWARD)
-        self.myMotor2.run(Adafruit_MotorHAT.FORWARD)
-    
-    def turnRight(self, speed):
-        self.myMotor1.setSpeed(speed)
-        self.myMotor2.setSpeed(speed)
-        self.myMotor1.run(Adafruit_MotorHAT.FORWARD)
-        self.myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+    def turn_left(self, speed):
+        """Turns left by reverting motor speeds"""
+        self.motor_1.setSpeed(speed)
+        self.motor_2.setSpeed(speed)
+        self.motor_1.run(Adafruit_MotorHAT.BACKWARD)
+        self.motor_2.run(Adafruit_MotorHAT.FORWARD)
 
-    def moveFwd(self, speed):
-        self.myMotor1.setSpeed(speed)
-        self.myMotor2.setSpeed(speed)
-        self.myMotor1.run(Adafruit_MotorHAT.FORWARD)
-        self.myMotor2.run(Adafruit_MotorHAT.FORWARD)
+    def turn_right(self, speed):
+        """Turns right by reverting motor speeds"""
+        self.motor_1.setSpeed(speed)
+        self.motor_2.setSpeed(speed)
+        self.motor_1.run(Adafruit_MotorHAT.FORWARD)
+        self.motor_2.run(Adafruit_MotorHAT.BACKWARD)
 
-    def moveBkwd(self, speed):
-        self.myMotor1.setSpeed(speed)
-        self.myMotor2.setSpeed(speed)
-        self.myMotor1.run(Adafruit_MotorHAT.BACKWARD)
-        self.myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+    def move_fwd(self, speed):
+        """Moves forward """
+        self.motor_1.setSpeed(speed)
+        self.motor_2.setSpeed(speed)
+        self.motor_1.run(Adafruit_MotorHAT.FORWARD)
+        self.motor_2.run(Adafruit_MotorHAT.FORWARD)
 
-    def moveStop(self):
-        self.myMotor1.setSpeed(0)
-        self.myMotor2.setSpeed(0)
+    def move_bkwd(self, speed):
+        """Moves backward """
+        self.motor_1.setSpeed(speed)
+        self.motor_2.setSpeed(speed)
+        self.motor_1.run(Adafruit_MotorHAT.BACKWARD)
+        self.motor_2.run(Adafruit_MotorHAT.BACKWARD)
 
-    #TODO : warning : ambiguous use of speed. 
-    #spread across motor control node and robotCore, passing the speed. 
+    def move_stop(self):
+        """Stops the motors """
+        self.motor_1.setSpeed(0)
+        self.motor_2.setSpeed(0)
+        self.turn_off_motors()
+
+    #TODO : warning : ambiguous use of speed.
+    #spread across motor control node and robotCore, passing the speed.
+    #Check also usages in methods above, as the set_speed methods may be useless
+    #It means currently there is no offset used to calibrate speed between the two motors
     #To be fixed.
-    def startCallback(self, data):
-        self.moveFwd(self.currentSpeed)
+    def cb_start(self, _):
+        """Callback used upon ROS topic reception """
+        self.move_fwd(self.current_speed)
         rospy.loginfo(rospy.get_caller_id() + ' received command start')
-    
-    def stopCallback(self, data):
-        self.moveStop()
+
+    def cb_stop(self, _):
+        """Callback used upon ROS topic reception """
+        self.move_stop()
         rospy.loginfo(rospy.get_caller_id() + ' received command stops')
 
-    def backwardCallback(self, data):
-        self.moveBkwd(self.currentSpeed)
+    def cb_bkwd(self, _):
+        """Callback used upon ROS topic reception """
+        self.move_bkwd(self.current_speed)
         rospy.loginfo(rospy.get_caller_id() + ' received command stops')
 
 
-    def leftCallback(self, data):
+    def cb_left(self, _):
+        """Callback used upon ROS topic reception """
         rospy.loginfo(rospy.get_caller_id() + ' received command left')
-        self.turnLeft(self.currentSpeed)
-    
-    def rightCallback(self, data):
+        self.turn_left(self.current_speed)
+
+    def cb_right(self, _):
+        """Callback used upon ROS topic reception """
         rospy.loginfo(rospy.get_caller_id() + ' received command right')
-        self.turnRight(self.currentSpeed)
+        self.turn_right(self.current_speed)
 
-    def setSpeedCallback(self, data):
+    def cb_set_speed(self, data):
+        """Callback used upon ROS topic reception """
         value = data.data
-        rospy.loginfo(rospy.get_caller_id() + 'received setspeed command : ' + str(value))
-        self.currentSpeed = value
-        self.setSpeed(value)
-   
-    def calculate_elapse_1(self, channel):            # callback function
-        global pulse_1, start_timer_1, elapse_1
-        global accumul_1, NB_ACCUMUL
-        global used_1
-        accumul_1+=1
-   
-        if(accumul_1 <= NB_ACCUMUL):
-            pulse_1+=1
+        rospy.loginfo(rospy.get_caller_id() + 'received set_speed command : ' + str(value))
+        self.current_speed = value
+        self.set_speed(value)
+
+
+    # callback function
+    def cb_calculate_elapse_1(self, channel):
+        """callback function for speed sensor 1"""
+        self.accumul_1 += 1
+
+        if self.accumul_1 <= NB_ACCUMUL:
+            self.pulse_1 += 1
         else:
-            pulse_1+=1
-            accumul_1 = 0
-            elapse_1 = time.time() - start_timer_1      # elapse for every 1 wheel tick accumulated made!
-            start_timer_1 = time.time()            # let current time equals to start_timer
-            used_1 = 0
+            self.pulse_1 += 1
+            self.accumul_1 = 0
+            # elapse for every 1 wheel tick accumulated made!
+            self.elapse_1 = time.time() - self.start_timer_1
+            # let current time equals to start_timer
+            self.start_timer_1 = time.time()
+            self.used_1 = 0
 
 
 
-    def calculate_elapse_2(self, channel):            # callback function
-        global pulse_2, start_timer_2, elapse_2
-        global accumul_2, NB_ACCUMUL, nb_tour
-        global used_2
-        accumul_2+=1
+    def cb_calculate_elapse_2(self, channel):
+        """callback function for speed sensor 2"""
+        self.accumul_2 += 1
 
 
-   
         #print pulse_2
-        if(accumul_2 < NB_ACCUMUL):
-            pulse_2+=1
+        if self.accumul_2 < NB_ACCUMUL:
+            self.pulse_2 += 1
             #print ("skip")
         else:
-            pulse_2+=1
-            accumul_2 = 0
-            elapse_2 = time.time() - start_timer_2      # elapse for every 1 wheel tick accumulated made!
-            start_timer_2 = time.time()            # let current time equals to start_timer
-            nb_tour +=1
-            used_2 = 0
-#       print "{0:.3f}".format(elapse_2)
+            self.pulse_2 += 1
+            self.accumul_2 = 0
+            # elapse for every 1 wheel tick accumulated made!
+            self.elapse_2 = time.time() - self.start_timer_2
+            # let current time equals to start_timer
+            self.start_timer_2 = time.time()
+            self.nb_tour += 1
+            self.used_2 = 0
 
 
     def calculate_speed(self, r_cm):
-        global pulse_1,elapse_1,rpm_1,cm_per_sec_1, NB_WHEEL_TICK
-        global pulse_2,elapse_2,rpm_2,cm_per_sec_2, NB_WHEEL_TICK
-        global used_1, used_2
-        circ_cm = (2*math.pi)*r_cm         # calculate wheel circumference in CM
+        """calculate speed based on sensor inputs """
+	#TODO : separate this sensor calculation into a dedicated class
+        # calculate wheel circumference in CM
+        circ_cm = (2*math.pi)*r_cm
 
-        if (elapse_1 !=0):                     # to avoid DivisionByZero error
-           rpm_1 = (((1/elapse_1) * 60) / NB_WHEEL_TICK) * NB_ACCUMUL  
-           if used_1 == 0:
-               cm_per_sec_1 = circ_cm / elapse_1      # calculate CM/sec
-               used_1 = 1
-           else:
-               cm_per_sec_1 = cm_per_sec_1 / 2
-	  
-        if (elapse_2 !=0):                     # to avoid DivisionByZero error
-           rpm_2 = ((1/elapse_2 * 60) / NB_WHEEL_TICK) * NB_ACCUMUL  
-           if used_2 == 0:
-               cm_per_sec_2 = circ_cm / elapse_2      # calculate CM/sec
-               used_2 = 1
-           else:
-               cm_per_sec_2 = cm_per_sec_2/2
-      #print (cm_per_sec_2)
- 
+        # to avoid DivisionByZero error
+        if self.elapse_1 != 0:
+            self.rpm_1 = (((1/self.elapse_1) * 60) / NB_WHEEL_TICK) * NB_ACCUMUL
+            if self.used_1 == 0:
+                # calculate CM/sec
+                self.cm_per_sec_1 = circ_cm / self.elapse_1
+                self.used_1 = 1
+            else:
+                self.cm_per_sec_1 = self.cm_per_sec_1 / 2
 
-
-
-
+        # to avoid DivisionByZero error
+        if self.elapse_2 != 0:
+            self.rpm_2 = ((1/self.elapse_2 * 60) / NB_WHEEL_TICK) * NB_ACCUMUL
+            if self.used_2 == 0:
+                # calculate CM/sec
+                self.cm_per_sec_2 = circ_cm / self.elapse_2
+                self.used_2 = 1
+            else:
+                self.cm_per_sec_2 = self.cm_per_sec_2/2
 
 
 
-atexit.register(MotorCtrl.turnOffMotors)
 
 
-
-		
-
-
-    
 
 if __name__ == '__main__':
-
-
-   myMotorCtrl = MotorCtrl()
-   myMotorCtrl.rosNodeStart()
-
+    my_motor_ctrl = MotorCtrl()
+    my_motor_ctrl.ros_node_start()
