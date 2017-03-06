@@ -131,6 +131,33 @@ def setSpeed(speed):
     myMotor2.setSpeed(speed + 9)
 
 
+def turnLeft(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.BACKWARD)
+    myMotor2.run(Adafruit_MotorHAT.FORWARD)
+    
+def turnRight(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.FORWARD)
+    myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+
+def moveFwd(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.FORWARD)
+    myMotor2.run(Adafruit_MotorHAT.FORWARD)
+
+def moveBkwd(speed):
+    myMotor1.setSpeed(speed)
+    myMotor2.setSpeed(speed)
+    myMotor1.run(Adafruit_MotorHAT.BACKWARD)
+    myMotor2.run(Adafruit_MotorHAT.BACKWARD)
+
+def moveStop():
+    myMotor1.setSpeed(0)
+    myMotor2.setSpeed(0)
 
 def callback(data):
     global myMotor1, myMotor2, currentSpeed
@@ -138,8 +165,21 @@ def callback(data):
     setSpeed(data.data)
     currentSpeed = data.data
     
+def startCallback(data):
+    moveFwd(currentSpeed)
+    rospy.loginfo(rospy.get_caller_id() + 'I received command start')
     
+def stopCallback(data):
+    moveStop()
+    rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
 
+def leftCallback(data):
+    rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
+    turnLeft(currentSpeed)
+    
+def rightCallback(data):
+    rospy.loginfo(rospy.get_caller_id() + 'I received command stops')
+    turnRight(currentSpeed)
 
 def faceDetectedCallback(data):
     global headingChangeInProgress
@@ -221,6 +261,11 @@ def moveBkwd(speed):
     myMotor1.run(Adafruit_MotorHAT.BACKWARD)
     myMotor2.run(Adafruit_MotorHAT.BACKWARD)
 
+def moveStop():
+    myMotor1.setSpeed(0)
+    myMotor2.setSpeed(0)
+
+
 
 def smoothDance():
     rospy.sleep(1.3)
@@ -291,7 +336,31 @@ def smoothDance():
     rospy.sleep(0.5)
     moveBkwd(150)
     rospy.sleep(0.5)
+    
+    
+    turnLeft(180)
+    rospy.sleep(0.3) 
+    moveBkwd(180)
+    rospy.sleep(0.3) 
+    turnRight(210)
+    rospy.sleep(1)     
+    turnLeft(150)
+    rospy.sleep(0.3) 
+    turnRight(150)
+    rospy.sleep(0.3) 
+    turnLeft(200)
+    rospy.sleep(1)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
+    moveFwd(150)     
+    rospy.sleep(0.5)
+    moveBkwd(150)
+    rospy.sleep(0.5)
 
+    
+    moveStop()
 	    
 def vocalCommandCallback(data):
     global currentSpeed
@@ -305,6 +374,15 @@ def vocalCommandCallback(data):
         setSpeed(currentSpeed)
     if(command == "smooth"):
         smoothDance()
+
+def setSpeedCallback(data):
+    global currentSpeed
+    value = data.data
+    rospy.loginfo(rospy.get_caller_id() + 'Received setspeed command : ' + str(value))
+    currentSpeed = value
+    setSpeed(value)
+
+
 		
 
 def motorCtrl():
@@ -319,10 +397,16 @@ def motorCtrl():
     currentSpeed = 0
     rospy.init_node('motorCtrl', anonymous=False)
 
+
     rospy.Subscriber('/speech/command', String, vocalCommandCallback)
     rospy.Subscriber('/motor/command', Int32, callback)
     rospy.Subscriber('/camera/face', Int32, faceDetectedCallback)
     rospy.Subscriber('/sensor/distance', Int32, distanceCallback)
+    rospy.Subscriber('/robot/stop', Int32, stopCallback)
+    rospy.Subscriber('/robot/start', Int32, startCallback)
+    rospy.Subscriber('/robot/left', Int32, leftCallback)
+    rospy.Subscriber('/robot/right', Int32, rightCallback)
+    rospy.Subscriber('/robot/setspeed', Int32, setSpeedCallback)
 
     pubAudio = rospy.Publisher('/audio/command', String, queue_size=1)
 
