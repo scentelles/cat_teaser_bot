@@ -85,10 +85,10 @@ class robotCore():
         rospy.Subscriber('/speech/command', String, self.vocalCommandCallback)
 #TODO : unused?        rospy.Subscriber('/motor/command', Int32, self.callback)
 
-        rospy.Subscriber('/camera/face', Int32, self.faceDetectedCallback)
 
         #ROS publisher for sensors
-        rospy.Subscriber('/sensor/distance', Int32, self.distanceCallback)
+        rospy.Subscriber('/sensor/distance/front', Int32, self.distanceCallback)
+        rospy.Subscriber('/sensor/camera/face', Int32, self.faceDetectedCallback)
 
         #ROS subriptions for external control topics
         rospy.Subscriber('/robot/stop', Int32, self.stopCallback)

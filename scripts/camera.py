@@ -12,7 +12,7 @@ import numpy as np
 
 def camera():
     rospy.loginfo("Starting Camera Node")
-    pub = rospy.Publisher('/camera/face', Int32, queue_size=10)
+    pub = rospy.Publisher('/sensor/camera/face', Int32, queue_size=10)
     rospy.init_node('camera', anonymous=True)
 
     # initialize the camera and grab a reference to the raw camera capture
